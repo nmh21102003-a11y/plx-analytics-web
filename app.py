@@ -25,8 +25,8 @@ if os.path.exists(EXCEL_FILE):
     # Thẻ chỉ số
     latest = df.iloc[-1]
     c1, c2, c3 = st.columns(3)
-    c1.metric("Giá Đóng Cửa", f"{latest['Đóng cửa']:,} VND")
-    c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:,.2f} VND")
+    c1.metric("Giá Đóng Cửa", f"{latest['Đóng cửa']:,} Nghìn đồng")
+    c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:,.2f} Nghìn đồng")
     c3.metric("Ngày cập nhật", latest['Ngày'])
 
     # Vẽ biểu đồ
@@ -34,30 +34,39 @@ if os.path.exists(EXCEL_FILE):
                         subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                         row_width=[0.2, 0.7])
 
-    # Đường giá & MA30
     fig.add_trace(go.Scatter(x=df['Ngày'], y=df['Đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
     fig.add_trace(go.Scatter(x=df['Ngày'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
-    
-    # Khối lượng
     fig.add_trace(go.Bar(x=df['Ngày'], y=df['KL'], name='Volume', marker_color='gray'), row=2, col=1)
 
-    # CẤU HÌNH TRỤC VÀ ZOOM
-    fig.update_layout(
-        template="plotly_white", 
-        height=600,
-        yaxis=dict(title="Giá (Nghìn VND)"), # Thêm tiêu đề trục giá
-        hovermode="x unified",
-        dragmode="zoom" # Bật chế độ zoom bằng chuột
-    )
-    
-    # Cho phép lăn chuột phóng to thu nhỏ
+    fig.update_layout(template="plotly_white", height=600, yaxis=dict(title="Giá (Nghìn đồng)"), hovermode="x unified", dragmode="zoom")
     fig.update_xaxes(fixedrange=False)
     fig.update_yaxes(fixedrange=False)
 
     st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
+    # CẤU HÌNH BẢNG CHI TIẾT THEO YÊU CẦU
     st.subheader("📋 Bảng dữ liệu giao dịch")
-    st.dataframe(df.sort_values("Ngày", ascending=False), use_container_width=True)
+    
+    # Sắp xếp để ngày mới nhất lên đầu
+    df_display = df.sort_values("Ngày", ascending=False).copy()
+    
+    # Tạo cột STT bắt đầu từ 1
+    df_display.insert(0, "STT", range(1, len(df_display) + 1))
+    
+    # Chọn và đổi tên cột theo yêu cầu của bạn
+    cols_to_show = {
+        "STT": "STT",
+        "Mã": "Mã CP",
+        "Ngày": "Ngày",
+        "Mở cửa": "Mở cửa",
+        "Cao nhất": "Cao nhất",
+        "Thấp nhất": "Thấp nhất",
+        "Đóng cửa": "Đóng cửa",
+        "KL": "Khối lượng",
+        "Giá trung bình (30 ngày giao dịch gần nhất)": "Giá trung bình"
+    }
+    
+    st.dataframe(df_display[cols_to_show.keys()].rename(columns=cols_to_show), use_container_width=True)
 
 else:
     st.error("Không tìm thấy file Excel!")
