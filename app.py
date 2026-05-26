@@ -32,14 +32,14 @@ if os.path.exists(EXCEL_FILE):
     c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:,.2f} Nghìn đồng")
     c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-    # 3. Vẽ biểu đồ 2 tầng (Hỗ trợ Zoom chuột và ẩn ngày nghỉ)
+    # 3. Vẽ biểu đồ 2 tầng
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                         subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                         row_width=[0.2, 0.7])
 
-    fig.add_trace(go.Scatter(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['Đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
-    fig.add_trace(go.Bar(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['KL'], name='Volume', marker_color='gray'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
+    fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['KL'], name='Volume', marker_color='gray'), row=2, col=1)
 
     fig.update_layout(
         template="plotly_white", height=600, 
@@ -60,12 +60,6 @@ if os.path.exists(EXCEL_FILE):
     # Thêm STT từ 1
     df_display.insert(0, "STT", range(1, len(df_display) + 1))
     
-    # Định dạng Khối lượng GD thêm dấu chấm phân cách hàng nghìn
-    df_display['KL'] = df_display['KL'].apply(lambda x: f"{int(x):,}".replace(",", "."))
-    
-    # CHỈNH SỬA: Định dạng cột Giá trung bình lấy đúng 2 số sau dấu phẩy
-    df_display['Giá trung bình (30 ngày giao dịch gần nhất)'] = df_display['Giá trung bình (30 ngày giao dịch gần nhất)'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else "")
-    
     # Danh sách 9 cột chuẩn trật tự cũ -> mới
     cols_order = ["STT", "Mã", "Ngày_chuẩn", "Mở cửa", "Cao nhất", "Thấp nhất", "Đóng cửa", "KL", "Giá trung bình (30 ngày giao dịch gần nhất)"]
     col_names = {
@@ -74,7 +68,15 @@ if os.path.exists(EXCEL_FILE):
         "Giá trung bình (30 ngày giao dịch gần nhất)": "Giá trung bình (30 ngày giao dịch gần nhất)"
     }
     
-    st.dataframe(df_display[cols_order].rename(columns=col_names), use_container_width=True)
+    df_final = df_display[cols_order].rename(columns=col_names)
+    
+    # DÙNG PANDAS STYLER: Định dạng hiển thị mà không làm mất tính chất "số" (để giữ căn phải)
+    styled_df = df_final.style.format({
+        'Khối lượng GD': lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else "",
+        'Giá trung bình (30 ngày giao dịch gần nhất)': lambda x: f"{x:.2f}" if pd.notna(x) else ""
+    })
+    
+    st.dataframe(styled_df, use_container_width=True)
 
 else:
     st.error("Không tìm thấy file Excel!")
