@@ -10,7 +10,7 @@ st.title("📊 Dashboard Phân Tích Giá & Khối Lượng PLX")
 EXCEL_FILE = "Du_lieu_PLX.xlsx"
 
 if os.path.exists(EXCEL_FILE):
-    # Đọc dữ liệu
+    # 1. Đọc dữ liệu
     df_price = pd.read_excel(EXCEL_FILE, sheet_name="Lịch sử giá")
     df_ma30 = pd.read_excel(EXCEL_FILE, sheet_name="Giá trung bình (30 ngày)")
     
@@ -25,23 +25,22 @@ if os.path.exists(EXCEL_FILE):
     # Ép chuẩn định dạng ngày: Chỉ lấy dd/mm/yyyy
     df['Ngày_chuẩn'] = df['Ngày'].dt.strftime('%d/%m/%Y')
     
-    # Thẻ chỉ số (Đã bỏ chữ VNĐ thừa)
+    # 2. Thẻ chỉ số
     latest = df.iloc[-1]
     c1, c2, c3 = st.columns(3)
     c1.metric("Giá Đóng Cửa", f"{latest['Đóng cửa']:,} Nghìn đồng")
     c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:,.2f} Nghìn đồng")
     c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-    # Vẽ biểu đồ 2 tầng
+    # 3. Vẽ biểu đồ 2 tầng (Hỗ trợ Zoom chuột và ẩn ngày nghỉ)
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                         subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                         row_width=[0.2, 0.7])
 
-    fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
-    fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['KL'], name='Volume', marker_color='gray'), row=2, col=1)
+    fig.add_trace(go.Scatter(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['Đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
+    fig.add_trace(go.Bar(x=df['Keep_Ngay'] if 'Keep_Ngay' in df.columns else df['Ngày_chuẩn'], y=df['KL'], name='Volume', marker_color='gray'), row=2, col=1)
 
-    # CẤU HÌNH TRỤC: Loại bỏ khoảng trống, thêm Zoom
     fig.update_layout(
         template="plotly_white", height=600, 
         yaxis=dict(title="Giá (Nghìn đồng)"), 
@@ -49,14 +48,12 @@ if os.path.exists(EXCEL_FILE):
         dragmode="zoom"
     )
     
-    # Lệnh type='category' giúp loại bỏ các ngày không có trong dữ liệu
     fig.update_xaxes(type='category', fixedrange=False)
     fig.update_yaxes(fixedrange=False)
 
-    # Bật tính năng cuộn chuột để zoom
     st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
-    # Bảng chi tiết
+    # 4. Bảng chi tiết
     st.subheader("📋 Bảng dữ liệu giao dịch")
     df_display = df.copy()
     
@@ -66,7 +63,10 @@ if os.path.exists(EXCEL_FILE):
     # Định dạng Khối lượng GD thêm dấu chấm phân cách hàng nghìn
     df_display['KL'] = df_display['KL'].apply(lambda x: f"{int(x):,}".replace(",", "."))
     
-    # Danh sách 9 cột chuẩn
+    # CHỈNH SỬA: Định dạng cột Giá trung bình lấy đúng 2 số sau dấu phẩy
+    df_display['Giá trung bình (30 ngày giao dịch gần nhất)'] = df_display['Giá trung bình (30 ngày giao dịch gần nhất)'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else "")
+    
+    # Danh sách 9 cột chuẩn trật tự cũ -> mới
     cols_order = ["STT", "Mã", "Ngày_chuẩn", "Mở cửa", "Cao nhất", "Thấp nhất", "Đóng cửa", "KL", "Giá trung bình (30 ngày giao dịch gần nhất)"]
     col_names = {
         "Mã": "Mã CP", "Ngày_chuẩn": "Ngày", "Mở cửa": "Giá mở cửa", "Cao nhất": "Giá cao nhất", 
