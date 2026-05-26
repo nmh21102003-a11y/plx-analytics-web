@@ -1,20 +1,22 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 # 1. Cấu hình tiêu đề và giao diện trang web
 st.set_page_config(page_title="Dashboard Phân Tích PLX", layout="wide")
 st.title("📈 Dashboard Phân Tích Số Liệu Cổ Phiếu PLX")
 st.markdown("Công cụ tự động hóa theo dõi xu hướng giá đóng cửa và đường trung bình 30 ngày (MA30).")
 
-# 2. Khu vực tải file dữ liệu Excel cập nhật hàng ngày
-uploaded_file = st.file_uploader("Tải file Excel (.xlsx) của bạn lên đây", type=["xlsx"])
+# Tên file Excel cố định trong hệ thống
+EXCEL_FILE = "Du_lieu_PLX.xlsx"
 
-if uploaded_file:
+# 2. Tự động kiểm tra và đọc file dữ liệu
+if os.path.exists(EXCEL_FILE):
     try:
-        # 3. Đọc dữ liệu từ file Excel
-        df_price = pd.read_excel(uploaded_file, sheet_name="Lịch sử giá")
-        df_ma30 = pd.read_excel(uploaded_file, sheet_name="Giá trung bình (30 ngày)")
+        # Đọc dữ liệu từ file Excel có sẵn
+        df_price = pd.read_excel(EXCEL_FILE, sheet_name="Lịch sử giá")
+        df_ma30 = pd.read_excel(EXCEL_FILE, sheet_name="Giá trung bình (30 ngày)")
 
         # Chuẩn hóa định dạng cột Ngày
         df_price['Ngày'] = pd.to_datetime(df_price['Ngày'])
@@ -24,13 +26,13 @@ if uploaded_file:
         df_merged = pd.merge(df_price, df_ma30, on=["Mã", "Ngày"], how="inner")
         df_merged = df_merged.sort_values("Ngày")
 
-        # 4. Thiết kế và vẽ biểu đồ tương tác
+        # 3. Vẽ biểu đồ tương tác luôn cho mọi người xem
         st.subheader("Biểu đồ Xu hướng Giá và MA30")
         fig = go.Figure()
 
         # Đường giá đóng cửa
         fig.add_trace(go.Scatter(
-            x=df_merged['Ngày'], 
+            x=df_merged['Nickel_ngay'] if 'Nickel_ngay' in df_merged else df_merged['Ngày'], 
             y=df_merged['Giá đóng cửa'], 
             mode='lines', 
             name='Giá đóng cửa',
@@ -39,7 +41,7 @@ if uploaded_file:
 
         # Đường MA30
         fig.add_trace(go.Scatter(
-            x=df_merged['Ngày'], 
+            x=df_merged['Nickel_ngay'] if 'Nickel_ngay' in df_merged else df_merged['Ngày'], 
             y=df_merged['Giá trung bình (30 ngày giao dịch gần nhất)'], 
             mode='lines', 
             name='Đường MA30',
@@ -57,6 +59,6 @@ if uploaded_file:
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Có lỗi xảy ra khi xử lý file. Hãy chắc chắn file Excel có đúng 2 tên sheet là 'Lịch sử giá' và 'Giá trung bình (30 ngày)'. Chi tiết: {e}")
+        st.error(f"Có lỗi xảy ra khi xử lý file dữ liệu. Hãy chắc chắn file Excel có đúng 2 tên sheet là 'Lịch sử giá' và 'Giá trung bình (30 ngày)'. Chi tiết: {e}")
 else:
-    st.info("Hệ thống đang trống. Vui lòng kéo thả hoặc tải file Excel (.xlsx) số liệu hàng ngày của bạn lên để hiển thị biểu đồ phân tích xu hướng.")
+    st.warning(f"Hệ thống chưa tìm thấy file '{EXCEL_FILE}' được tải lên kho lưu trữ.")
