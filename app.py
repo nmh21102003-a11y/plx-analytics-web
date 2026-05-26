@@ -14,7 +14,7 @@ if os.path.exists(EXCEL_FILE):
     df_price = pd.read_excel(EXCEL_FILE, sheet_name="Lịch sử giá")
     df_ma30 = pd.read_excel(EXCEL_FILE, sheet_name="Giá trung bình (30 ngày)")
     
-    # CHUẨN HÓA TÊN CỘT: Tự động nhận diện tên cột mới trong Excel của bạn
+    # CHUẨN HÓA TÊN CỘT: Tự động nhận diện tên cột trong Excel
     rename_dict = {
         "Mã": "Mã CP",
         "Mở cửa": "Giá mở cửa",
@@ -30,7 +30,7 @@ if os.path.exists(EXCEL_FILE):
     df_ma30['Ngày'] = pd.to_datetime(df_ma30['Ngày'])
     df = pd.merge(df_price, df_ma30, on="Ngày")
     
-    # LỌC BỎ NGÀY KHÔNG GIAO DỊCH và SẮP XẾP CŨ -> MỚI (Dùng tên cột mới)
+    # LỌC BỎ NGÀY KHÔNG GIAO DỊCH và SẮP XẾP CŨ -> MỚI
     df = df[df['Khối lượng GD'] > 0].sort_values("Ngày").copy()
     
     # Ép chuẩn định dạng ngày: Chỉ lấy dd/mm/yyyy
@@ -39,8 +39,8 @@ if os.path.exists(EXCEL_FILE):
     # 2. Thẻ chỉ số
     latest = df.iloc[-1]
     c1, c2, c3 = st.columns(3)
-    c1.metric("Giá Đóng Cửa", f"{latest['Giá đóng cửa']:,} Nghìn đồng")
-    c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:,.2f} Nghìn đồng")
+    c1.metric("Giá Đóng Cửa", f"{latest['Giá đóng cửa']:.2f} Nghìn đồng")
+    c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng")
     c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
     # 3. Vẽ biểu đồ 2 tầng
@@ -49,47 +49,4 @@ if os.path.exists(EXCEL_FILE):
                         row_width=[0.2, 0.7])
 
     fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
-    fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
-    fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', marker_color='gray'), row=2, col=1)
-
-    fig.update_layout(
-        template="plotly_white", height=600, 
-        yaxis=dict(title="Giá (Nghìn đồng)"), 
-        hovermode="x unified", 
-        dragmode="zoom"
-    )
-    
-    fig.update_xaxes(type='category', fixedrange=False)
-    fig.update_yaxes(fixedrange=False)
-
-    st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
-
-    # 4. Bảng chi tiết
-    st.subheader("📋 Bảng dữ liệu giao dịch")
-    df_display = df.copy()
-    
-    # Nếu trong file Excel bạn đã lưu sẵn cột STT thì xóa đi để code tự đánh lại số thứ tự cho chuẩn
-    if 'STT' in df_display.columns:
-        df_display = df_display.drop(columns=['STT'])
-        
-    # Thêm STT từ 1
-    df_display.insert(0, "STT", range(1, len(df_display) + 1))
-    
-    # Danh sách 9 cột chuẩn
-    cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
-    col_names = {
-        "Ngày_chuẩn": "Ngày"
-    }
-    
-    df_final = df_display[cols_order].rename(columns=col_names)
-    
-    # DÙNG PANDAS STYLER: Định dạng số liệu và căn phải tự động
-    styled_df = df_final.style.format({
-        'Khối lượng GD': lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else "",
-        'Giá trung bình (30 ngày giao dịch gần nhất)': lambda x: f"{x:.2f}" if pd.notna(x) else ""
-    })
-    
-    st.dataframe(styled_df, use_container_width=True)
-
-else:
-    st.error("Không tìm thấy file Excel!")
+    fig.add_trace(go.Scatter(x=df
