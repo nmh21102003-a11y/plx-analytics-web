@@ -45,90 +45,94 @@ if os.path.exists(EXCEL_FILE):
         
         # Lọc bỏ ngày nghỉ và sắp xếp Cũ -> Mới
         df = df[df['Khối lượng GD'] > 0].sort_values("Ngày").copy()
+        
+        # TẠO MÀU XANH ĐỎ CHO CỘT VOLUME (So sánh giá đóng cửa với ngày hôm trước)
+        df['Biến động'] = df['Giá đóng cửa'].diff()
+        df['Màu_Vol'] = df['Biến động'].apply(lambda x: '#ff3747' if x < 0 else '#00b050') # Đỏ / Xanh lá
+        
         df['Ngày_chuẩn'] = df['Ngày'].dt.strftime('%d/%m/%Y')
         
-        # 5. Thẻ chỉ số
+        # 5. THẺ CHỈ SỐ NÂNG CẤP (Có mũi tên báo Tăng/Giảm)
         latest = df.iloc[-1]
+        prev = df.iloc[-2] if len(df) > 1 else latest
+        
+        delta_price = latest['Giá đóng cửa'] - prev['Giá đóng cửa']
+        delta_ma30 = latest['Giá trung bình (30 ngày giao dịch gần nhất)'] - prev['Giá trung bình (30 ngày giao dịch gần nhất)']
+        
         c1, c2, c3 = st.columns(3)
-        c1.metric("Giá Đóng Cửa", f"{latest['Giá đóng cửa']:.2f} Nghìn đồng")
-        c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng")
+        c1.metric("Giá Đóng Cửa", f"{latest['Giá đóng cửa']:.2f} Nghìn đồng", f"{delta_price:.2f} Nghìn đồng")
+        c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng", f"{delta_ma30:.2f} Nghìn đồng")
         c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-        # 6. Vẽ biểu đồ giá
+        # 6. VẼ BIỂU ĐỒ (Tinh chỉnh mượt mà hơn)
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                             subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                             row_width=[0.2, 0.7])
 
-        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', line=dict(color='#1f77b4', width=2)), row=1, col=1)
-        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='orange', width=2, dash='dash')), row=1, col=1)
-        fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', marker_color='gray'), row=2, col=1)
+        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', line=dict(color='#0055ba', width=2.5)), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='#f58b00', width=2, dash='dot')), row=1, col=1)
+        
+        # Áp dụng màu Xanh/Đỏ tự động cho Volume
+        fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', marker_color=df['Màu_Vol']), row=2, col=1)
 
-        fig.update_layout(template="plotly_white", height=600, yaxis=dict(title="Giá (Nghìn đồng)"), hovermode="x unified", dragmode="zoom")
-        fig.update_xaxes(type='category', fixedrange=False)
-        fig.update_yaxes(fixedrange=False)
+        # Làm mờ kẻ ô lưới (Grid) để biểu đồ nhìn sang trọng hơn
+        fig.update_layout(
+            template="plotly_white", height=600, 
+            hovermode="x unified", dragmode="zoom",
+            margin=dict(l=20, r=20, t=40, b=20)
+        )
+        fig.update_yaxes(title_text="Giá (Nghìn đồng)", gridcolor='rgba(0,0,0,0.05)', row=1, col=1)
+        fig.update_yaxes(gridcolor='rgba(0,0,0,0.05)', row=2, col=1)
+        fig.update_xaxes(type='category', fixedrange=False, gridcolor='rgba(0,0,0,0.05)')
 
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ CHUẨN CORPORATE (TỐI GIẢN)
+        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ TỐI GIẢN CHUYÊN NGHIỆP
         # ==========================================
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; margin-bottom: 30px; color: #333; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; margin-bottom: 25px; color: #222; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
         
-        # Khối Vốn điều lệ chuẩn phong cách SSI/Bloomberg (Nền trắng, viền trên xanh lam)
         st.markdown("""
-            <div style="background-color: #ffffff; padding: 25px; border-radius: 10px; 
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.06); text-align: center; 
-                        max-width: 800px; margin: 0 auto 30px auto; border-top: 4px solid #0055ba;">
-                <p style="font-size: 14px; margin-bottom: 5px; color: #666; font-weight: 600; text-transform: uppercase;">
+            <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; 
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.05); text-align: center; 
+                        max-width: 750px; margin: 0 auto 30px auto; border-top: 4px solid #0055ba;">
+                <p style="font-size: 13px; margin-bottom: 5px; color: #777; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
                     Vốn điều lệ Tập đoàn
                 </p>
                 <h2 style="margin: 0; color: #0055ba; font-size: 34px; font-weight: 700;">
                     12.938.780.810.000 VNĐ
                 </h2>
-                <p style="font-size: 15px; margin-top: 5px; color: #888;">
-                    Tương đương <b style="color: #333;">1.293.878.081</b> cổ phiếu
+                <p style="font-size: 14px; margin-top: 5px; color: #666;">
+                    Tương đương <b style="color: #222;">1.293.878.081</b> cổ phiếu
                 </p>
             </div>
         """, unsafe_allow_html=True)
         
-        # Bố cục 1-2-1 ép biểu đồ tròn vào chính giữa
         col_left, col_center, col_right = st.columns([1, 2, 1])
-        
         with col_center:
             labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
             values = [75.87, 14.10, 10.03] 
-            
-            # Sử dụng đúng 3 mã màu hút trực tiếp từ ảnh SSI bạn gửi
             colors = ['#0055ba', '#7a7a7a', '#d3d3d3'] 
             
             fig_pie = go.Figure(data=[go.Pie(
-                labels=labels, 
-                values=values, 
-                hole=0.5, 
-                textinfo='percent',
-                textposition='inside',
-                hoverinfo='label+percent',
-                marker=dict(
-                    colors=colors, 
-                    line=dict(color='#ffffff', width=2) # Viền phân cách
-                )
+                labels=labels, values=values, hole=0.45, 
+                textinfo='percent', textposition='inside', hoverinfo='label+percent',
+                marker=dict(colors=colors, line=dict(color='#ffffff', width=2))
             )])
             
             fig_pie.update_layout(
                 showlegend=True, 
-                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(color="#333")),
-                margin=dict(t=10, b=20, l=0, r=0), 
-                height=350,
-                paper_bgcolor="rgba(0,0,0,0)", 
-                plot_bgcolor="rgba(0,0,0,0)"
+                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(color="#444")),
+                margin=dict(t=10, b=20, l=0, r=0), height=350,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
             )
             st.plotly_chart(fig_pie, use_container_width=True)
             
         st.markdown("<br>", unsafe_allow_html=True)
         # ==========================================
 
-        # 7. Bảng chi tiết
+        # 7. BẢNG CHI TIẾT
         st.subheader("📋 Bảng dữ liệu giao dịch")
         df_display = df.copy()
         
