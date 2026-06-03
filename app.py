@@ -99,4 +99,58 @@ if os.path.exists(EXCEL_FILE):
         with col_center:
             labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
             values = [75.87, 14.10, 10.03] 
-            colors = ['#2b5ce6', '#
+            colors = ['#2b5ce6', '#8e8e8e', '#d9d9d9'] # Giữ đúng màu chuẩn ảnh SSI
+            
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=labels, 
+                values=values, 
+                hole=0.55, 
+                textinfo='percent',
+                textposition='inside',
+                hoverinfo='label+percent',
+                marker=dict(
+                    colors=colors, 
+                    line=dict(color='#ffffff', width=2.5) 
+                )
+            )])
+            
+            fig_pie.update_layout(
+                showlegend=True, 
+                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
+                margin=dict(t=10, b=20, l=0, r=0), 
+                height=380,
+                paper_bgcolor="rgba(0,0,0,0)", 
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+            
+        st.markdown("<hr style='margin-top: 20px;'>", unsafe_allow_html=True)
+        # ==========================================
+
+        # 7. Bảng chi tiết
+        st.subheader("📋 Bảng dữ liệu giao dịch")
+        df_display = df.copy()
+        
+        if 'STT' in df_display.columns:
+            df_display = df_display.drop(columns=['STT'])
+        df_display.insert(0, "STT", range(1, len(df_display) + 1))
+        
+        cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
+        valid_cols = [c for c in cols_order if c in df_display.columns]
+        df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
+        
+        format_dict = {}
+        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
+            if c in df_final.columns:
+                format_dict[c] = "{:.2f}"
+        if "Khối lượng GD" in df_final.columns:
+            format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
+        
+        styled_df = df_final.style.format(format_dict)
+        st.dataframe(styled_df, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"⚠️ Phát hiện lỗi bất thường từ dữ liệu Excel: {e}")
+        st.warning("Bạn hãy chụp lại khung đỏ này gửi tôi nhé!")
+else:
+    st.error("Không tìm thấy file Excel!")
