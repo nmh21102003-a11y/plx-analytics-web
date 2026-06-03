@@ -46,13 +46,14 @@ if os.path.exists(EXCEL_FILE):
         # Lọc bỏ ngày nghỉ và sắp xếp Cũ -> Mới
         df = df[df['Khối lượng GD'] > 0].sort_values("Ngày").copy()
         
-        # TẠO MÀU XANH ĐỎ CHO CỘT VOLUME (So sánh giá đóng cửa với ngày hôm trước)
+        # TÍNH TOÁN BIẾN ĐỘNG & % THAY ĐỔI CHO BẢNG ĐIỆN TỬ
         df['Biến động'] = df['Giá đóng cửa'].diff()
+        df['% Thay đổi'] = (df['Biến động'] / df['Giá đóng cửa'].shift(1)) * 100
         df['Màu_Vol'] = df['Biến động'].apply(lambda x: '#ff3747' if x < 0 else '#00b050') # Đỏ / Xanh lá
         
         df['Ngày_chuẩn'] = df['Ngày'].dt.strftime('%d/%m/%Y')
         
-        # 5. THẺ CHỈ SỐ NÂNG CẤP (Có mũi tên báo Tăng/Giảm)
+        # 5. THẺ CHỈ SỐ NÂNG CẤP
         latest = df.iloc[-1]
         prev = df.iloc[-2] if len(df) > 1 else latest
         
@@ -64,7 +65,7 @@ if os.path.exists(EXCEL_FILE):
         c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng", f"{delta_ma30:.2f} Nghìn đồng")
         c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-        # 6. VẼ BIỂU ĐỒ (Tinh chỉnh mượt mà hơn)
+        # 6. VẼ BIỂU ĐỒ 
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                             subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                             row_width=[0.2, 0.7])
@@ -72,10 +73,8 @@ if os.path.exists(EXCEL_FILE):
         fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', line=dict(color='#0055ba', width=2.5)), row=1, col=1)
         fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='#f58b00', width=2, dash='dot')), row=1, col=1)
         
-        # Áp dụng màu Xanh/Đỏ tự động cho Volume
         fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', marker_color=df['Màu_Vol']), row=2, col=1)
 
-        # Làm mờ kẻ ô lưới (Grid) để biểu đồ nhìn sang trọng hơn
         fig.update_layout(
             template="plotly_white", height=600, 
             hovermode="x unified", dragmode="zoom",
@@ -88,7 +87,7 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ TỐI GIẢN CHUYÊN NGHIỆP
+        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG (PHỐI MÀU MỚI: XANH - VÀNG CAM - XÁM)
         # ==========================================
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center; margin-bottom: 25px; color: #222; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
@@ -113,12 +112,14 @@ if os.path.exists(EXCEL_FILE):
         with col_center:
             labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
             values = [75.87, 14.10, 10.03] 
-            colors = ['#0055ba', '#7a7a7a', '#d3d3d3'] 
+            
+            # Phối màu mới mang lại cảm giác cực kỳ sang trọng
+            colors = ['#0055ba', '#ff9f00', '#e0e0e0'] # Xanh lam (SSI) - Vàng Cam (Ngoại) - Xám nhạt
             
             fig_pie = go.Figure(data=[go.Pie(
                 labels=labels, values=values, hole=0.45, 
                 textinfo='percent', textposition='inside', hoverinfo='label+percent',
-                marker=dict(colors=colors, line=dict(color='#ffffff', width=2))
+                marker=dict(colors=colors, line=dict(color='#ffffff', width=2.5))
             )])
             
             fig_pie.update_layout(
@@ -132,7 +133,7 @@ if os.path.exists(EXCEL_FILE):
         st.markdown("<br>", unsafe_allow_html=True)
         # ==========================================
 
-        # 7. BẢNG CHI TIẾT
+        # 7. BẢNG CHI TIẾT (CHUẨN BẢNG ĐIỆN TỬ: XANH ĐỎ & ẨN INDEX)
         st.subheader("📋 Bảng dữ liệu giao dịch")
         df_display = df.copy()
         
@@ -140,19 +141,38 @@ if os.path.exists(EXCEL_FILE):
             df_display = df_display.drop(columns=['STT'])
         df_display.insert(0, "STT", range(1, len(df_display) + 1))
         
-        cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
+        # Bổ sung cột % Thay đổi vào danh sách hiển thị
+        cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "% Thay đổi", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
         valid_cols = [c for c in cols_order if c in df_display.columns]
         df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
         
+        # Hàm tô màu chữ cho tỷ lệ phần trăm
+        def color_percent(val):
+            if pd.isna(val): return ""
+            if val > 0: return 'color: #00b050; font-weight: bold;' # Xanh lá
+            elif val < 0: return 'color: #ff3747; font-weight: bold;' # Đỏ
+            return 'color: #f58b00; font-weight: bold;' # Vàng tham chiếu
+            
         format_dict = {}
         for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
             if c in df_final.columns:
                 format_dict[c] = "{:.2f}"
+                
+        if "% Thay đổi" in df_final.columns:
+            format_dict["% Thay đổi"] = lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%" if pd.notna(x) else ""
+            
         if "Khối lượng GD" in df_final.columns:
             format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
         
-        styled_df = df_final.style.format(format_dict)
-        st.dataframe(styled_df, use_container_width=True)
+        # Áp dụng định dạng và tô màu
+        try:
+            styled_df = df_final.style.format(format_dict).map(color_percent, subset=['% Thay đổi'])
+        except:
+            # Fallback cho phiên bản Pandas cũ hơn
+            styled_df = df_final.style.format(format_dict).applymap(color_percent, subset=['% Thay đổi'])
+            
+        # hide_index=True giúp loại bỏ cột số đếm mặc định bên trái cùng của hệ thống
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"⚠️ Phát hiện lỗi bất thường từ dữ liệu Excel: {e}")
