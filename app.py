@@ -64,7 +64,7 @@ if os.path.exists(EXCEL_FILE):
         c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng", f"{delta_ma30:.2f} Nghìn đồng")
         c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-        # 6. VẼ BIỂU ĐỒ (Đã làm mượt Hover Tooltip)
+        # 6. VẼ BIỂU ĐỒ TRUNG TÂM
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                             subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                             row_width=[0.2, 0.7])
@@ -99,55 +99,11 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG
+        # 7. BẢNG CHI TIẾT (ĐẢO NGƯỢC: NGÀY MỚI NHẤT LÊN ĐẦU)
         # ==========================================
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; margin-bottom: 25px; color: #222; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
-        
-        st.markdown("""
-            <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; 
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.05); text-align: center; 
-                        max-width: 750px; margin: 0 auto 30px auto; border-top: 4px solid #0055ba;">
-                <p style="font-size: 13px; margin-bottom: 5px; color: #777; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Vốn điều lệ Tập đoàn
-                </p>
-                <h2 style="margin: 0; color: #0055ba; font-size: 34px; font-weight: 700;">
-                    12.938.780.810.000 VNĐ
-                </h2>
-                <p style="font-size: 14px; margin-top: 5px; color: #666;">
-                    Tương đương <b style="color: #222;">1.293.878.081</b> cổ phiếu
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        col_left, col_center, col_right = st.columns([1, 2, 1])
-        with col_center:
-            labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
-            values = [75.87, 14.10, 10.03] 
-            colors = ['#0055ba', '#ff9f00', '#e0e0e0'] 
-            
-            fig_pie = go.Figure(data=[go.Pie(
-                labels=labels, values=values, hole=0.45, 
-                textinfo='percent', textposition='inside', hoverinfo='label+percent',
-                marker=dict(colors=colors, line=dict(color='#ffffff', width=2.5))
-            )])
-            
-            fig_pie.update_layout(
-                showlegend=True, 
-                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(color="#444")),
-                margin=dict(t=10, b=20, l=0, r=0), height=350,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ==========================================
-        # BẢNG CHI TIẾT (ĐẢO NGƯỢC: NGÀY MỚI NHẤT LÊN ĐẦU)
-        # ==========================================
         st.subheader("📋 Bảng dữ liệu giao dịch")
         
-        # Lệnh [::-1] giúp đảo ngược toàn bộ DataFrame từ dưới lên trên
         df_display = df.iloc[::-1].copy()
         
         if 'STT' in df_display.columns:
