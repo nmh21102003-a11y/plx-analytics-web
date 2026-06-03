@@ -141,4 +141,17 @@ if os.path.exists(EXCEL_FILE):
         df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
         
         format_dict = {}
-        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch
+        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
+            if c in df_final.columns:
+                format_dict[c] = "{:.2f}"
+        if "Khối lượng GD" in df_final.columns:
+            format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
+        
+        styled_df = df_final.style.format(format_dict)
+        st.dataframe(styled_df, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"⚠️ Phát hiện lỗi bất thường từ dữ liệu Excel: {e}")
+        st.warning("Bạn hãy chụp lại khung đỏ này gửi tôi nhé!")
+else:
+    st.error("Không tìm thấy file Excel!")
