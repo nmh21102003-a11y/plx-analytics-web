@@ -15,7 +15,7 @@ if os.path.exists(EXCEL_FILE):
         df_price = pd.read_excel(EXCEL_FILE, sheet_name="Lịch sử giá")
         df_ma30 = pd.read_excel(EXCEL_FILE, sheet_name="Giá trung bình (30 ngày)")
         
-        # 2. TỰ ĐỘNG SỬA LỖI TÊN CỘT TRONG EXCEL
+        # 2. TỰ ĐỘNG SỬA LỖI TÊN CỘT
         for c in df_price.columns:
             c_up = str(c).upper()
             if "MỞ" in c_up: df_price.rename(columns={c: "Giá mở cửa"}, inplace=True)
@@ -38,18 +38,17 @@ if os.path.exists(EXCEL_FILE):
         if "Giá trung bình (30 ngày giao dịch gần nhất)" in df_ma30.columns:
             df_ma30["Giá trung bình (30 ngày giao dịch gần nhất)"] = pd.to_numeric(df_ma30["Giá trung bình (30 ngày giao dịch gần nhất)"], errors='coerce')
 
-        # 4. Gộp dữ liệu
+        # 4. GỘP & CHUẨN HÓA DỮ LIỆU
         df_price['Ngày'] = pd.to_datetime(df_price['Ngày'])
         df_ma30['Ngày'] = pd.to_datetime(df_ma30['Ngày'])
         df = pd.merge(df_price, df_ma30, on="Ngày")
         
-        # Lọc bỏ ngày nghỉ và sắp xếp Cũ -> Mới
+        # Lọc bỏ ngày nghỉ và sắp xếp Cũ -> Mới (Cho biểu đồ)
         df = df[df['Khối lượng GD'] > 0].sort_values("Ngày").copy()
         
-        # TÍNH TOÁN BIẾN ĐỘNG & % THAY ĐỔI CHO BẢNG ĐIỆN TỬ
         df['Biến động'] = df['Giá đóng cửa'].diff()
         df['% Thay đổi'] = (df['Biến động'] / df['Giá đóng cửa'].shift(1)) * 100
-        df['Màu_Vol'] = df['Biến động'].apply(lambda x: '#ff3747' if x < 0 else '#00b050') # Đỏ / Xanh lá
+        df['Màu_Vol'] = df['Biến động'].apply(lambda x: '#ff3747' if x < 0 else '#00b050')
         
         df['Ngày_chuẩn'] = df['Ngày'].dt.strftime('%d/%m/%Y')
         
@@ -65,15 +64,28 @@ if os.path.exists(EXCEL_FILE):
         c2.metric("Đường MA30", f"{latest['Giá trung bình (30 ngày giao dịch gần nhất)']:.2f} Nghìn đồng", f"{delta_ma30:.2f} Nghìn đồng")
         c3.metric("Ngày cập nhật", latest['Ngày_chuẩn'])
 
-        # 6. VẼ BIỂU ĐỒ 
+        # 6. VẼ BIỂU ĐỒ (Đã làm mượt Hover Tooltip)
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, 
                             subplot_titles=('Xu hướng Giá & MA30', 'Khối lượng giao dịch'), 
                             row_width=[0.2, 0.7])
 
-        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', line=dict(color='#0055ba', width=2.5)), row=1, col=1)
-        fig.add_trace(go.Scatter(x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', line=dict(color='#f58b00', width=2, dash='dot')), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=df['Ngày_chuẩn'], y=df['Giá đóng cửa'], name='Giá đóng cửa', 
+            line=dict(color='#0055ba', width=2.5),
+            hovertemplate='<b>Ngày:</b> %{x}<br><b>Giá:</b> %{y:,.2f} Nghìn đồng<extra></extra>'
+        ), row=1, col=1)
         
-        fig.add_trace(go.Bar(x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', marker_color=df['Màu_Vol']), row=2, col=1)
+        fig.add_trace(go.Scatter(
+            x=df['Ngày_chuẩn'], y=df['Giá trung bình (30 ngày giao dịch gần nhất)'], name='MA30', 
+            line=dict(color='#f58b00', width=2, dash='dot'),
+            hovertemplate='<b>MA30:</b> %{y:,.2f} Nghìn đồng<extra></extra>'
+        ), row=1, col=1)
+        
+        fig.add_trace(go.Bar(
+            x=df['Ngày_chuẩn'], y=df['Khối lượng GD'], name='Volume', 
+            marker_color=df['Màu_Vol'],
+            hovertemplate='<b>KL:</b> %{y:,.0f}<extra></extra>'
+        ), row=2, col=1)
 
         fig.update_layout(
             template="plotly_white", height=600, 
@@ -87,7 +99,7 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG (PHỐI MÀU MỚI: XANH - VÀNG CAM - XÁM)
+        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG
         # ==========================================
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center; margin-bottom: 25px; color: #222; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
@@ -112,9 +124,7 @@ if os.path.exists(EXCEL_FILE):
         with col_center:
             labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
             values = [75.87, 14.10, 10.03] 
-            
-            # Phối màu mới mang lại cảm giác cực kỳ sang trọng
-            colors = ['#0055ba', '#ff9f00', '#e0e0e0'] # Xanh lam (SSI) - Vàng Cam (Ngoại) - Xám nhạt
+            colors = ['#0055ba', '#ff9f00', '#e0e0e0'] 
             
             fig_pie = go.Figure(data=[go.Pie(
                 labels=labels, values=values, hole=0.45, 
@@ -131,27 +141,28 @@ if os.path.exists(EXCEL_FILE):
             st.plotly_chart(fig_pie, use_container_width=True)
             
         st.markdown("<br>", unsafe_allow_html=True)
-        # ==========================================
 
-        # 7. BẢNG CHI TIẾT (CHUẨN BẢNG ĐIỆN TỬ: XANH ĐỎ & ẨN INDEX)
+        # ==========================================
+        # BẢNG CHI TIẾT (ĐẢO NGƯỢC: NGÀY MỚI NHẤT LÊN ĐẦU)
+        # ==========================================
         st.subheader("📋 Bảng dữ liệu giao dịch")
-        df_display = df.copy()
+        
+        # Lệnh [::-1] giúp đảo ngược toàn bộ DataFrame từ dưới lên trên
+        df_display = df.iloc[::-1].copy()
         
         if 'STT' in df_display.columns:
             df_display = df_display.drop(columns=['STT'])
         df_display.insert(0, "STT", range(1, len(df_display) + 1))
         
-        # Bổ sung cột % Thay đổi vào danh sách hiển thị
         cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "% Thay đổi", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
         valid_cols = [c for c in cols_order if c in df_display.columns]
         df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
         
-        # Hàm tô màu chữ cho tỷ lệ phần trăm
         def color_percent(val):
             if pd.isna(val): return ""
-            if val > 0: return 'color: #00b050; font-weight: bold;' # Xanh lá
-            elif val < 0: return 'color: #ff3747; font-weight: bold;' # Đỏ
-            return 'color: #f58b00; font-weight: bold;' # Vàng tham chiếu
+            if val > 0: return 'color: #00b050; font-weight: bold;' 
+            elif val < 0: return 'color: #ff3747; font-weight: bold;' 
+            return 'color: #f58b00; font-weight: bold;' 
             
         format_dict = {}
         for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
@@ -164,14 +175,11 @@ if os.path.exists(EXCEL_FILE):
         if "Khối lượng GD" in df_final.columns:
             format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
         
-        # Áp dụng định dạng và tô màu
         try:
             styled_df = df_final.style.format(format_dict).map(color_percent, subset=['% Thay đổi'])
         except:
-            # Fallback cho phiên bản Pandas cũ hơn
             styled_df = df_final.style.format(format_dict).applymap(color_percent, subset=['% Thay đổi'])
             
-        # hide_index=True giúp loại bỏ cột số đếm mặc định bên trái cùng của hệ thống
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
     except Exception as e:
