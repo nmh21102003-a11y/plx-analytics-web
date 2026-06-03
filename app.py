@@ -70,25 +70,24 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ CAO CẤP (XANH NAVY TỐI & VÀNG GOLD)
+        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ CHUẨN CORPORATE (TỐI GIẢN)
         # ==========================================
-        st.markdown("<br><hr style='margin-bottom: 25px;'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; margin-bottom: 35px; color: #1e293b; font-weight: 700;'>🥧 Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; margin-bottom: 30px; color: #333; font-weight: 600;'>Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
         
-        # Khối Vốn điều lệ với giao diện dải màu Gradient sang trọng
+        # Khối Vốn điều lệ chuẩn phong cách SSI/Bloomberg (Nền trắng, viền trên xanh lam)
         st.markdown("""
-            <div style="background: linear-gradient(135deg, #09203f 0%, #537895 100%); 
-                        padding: 30px; border-radius: 16px; 
-                        box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; 
-                        max-width: 800px; margin: 0 auto 30px auto; border: 1px solid rgba(255,255,255,0.1);">
-                <p style="font-size: 14px; margin-bottom: 8px; color: #e2e8f0; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;">
+            <div style="background-color: #ffffff; padding: 25px; border-radius: 10px; 
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.06); text-align: center; 
+                        max-width: 800px; margin: 0 auto 30px auto; border-top: 4px solid #0055ba;">
+                <p style="font-size: 14px; margin-bottom: 5px; color: #666; font-weight: 600; text-transform: uppercase;">
                     Vốn điều lệ Tập đoàn
                 </p>
-                <h2 style="margin: 0; color: #fbbf24; font-size: 38px; font-weight: 800; letter-spacing: 1px; text-shadow: 1px 2px 4px rgba(0,0,0,0.2);">
+                <h2 style="margin: 0; color: #0055ba; font-size: 34px; font-weight: 700;">
                     12.938.780.810.000 VNĐ
                 </h2>
-                <p style="font-size: 15px; margin-top: 10px; color: #cbd5e1; font-style: italic;">
-                    Tương đương <b style="color: #ffffff; font-style: normal;">1.293.878.081</b> cổ phiếu
+                <p style="font-size: 15px; margin-top: 5px; color: #888;">
+                    Tương đương <b style="color: #333;">1.293.878.081</b> cổ phiếu
                 </p>
             </div>
         """, unsafe_allow_html=True)
@@ -99,32 +98,34 @@ if os.path.exists(EXCEL_FILE):
         with col_center:
             labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
             values = [75.87, 14.10, 10.03] 
-            colors = ['#2b5ce6', '#8e8e8e', '#d9d9d9'] # Giữ đúng màu chuẩn ảnh SSI
+            
+            # Sử dụng đúng 3 mã màu hút trực tiếp từ ảnh SSI bạn gửi
+            colors = ['#0055ba', '#7a7a7a', '#d3d3d3'] 
             
             fig_pie = go.Figure(data=[go.Pie(
                 labels=labels, 
                 values=values, 
-                hole=0.55, 
+                hole=0.5, 
                 textinfo='percent',
                 textposition='inside',
                 hoverinfo='label+percent',
                 marker=dict(
                     colors=colors, 
-                    line=dict(color='#ffffff', width=2.5) 
+                    line=dict(color='#ffffff', width=2) # Viền phân cách
                 )
             )])
             
             fig_pie.update_layout(
                 showlegend=True, 
-                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
+                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5, font=dict(color="#333")),
                 margin=dict(t=10, b=20, l=0, r=0), 
-                height=380,
+                height=350,
                 paper_bgcolor="rgba(0,0,0,0)", 
                 plot_bgcolor="rgba(0,0,0,0)"
             )
             st.plotly_chart(fig_pie, use_container_width=True)
             
-        st.markdown("<hr style='margin-top: 20px;'>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         # ==========================================
 
         # 7. Bảng chi tiết
@@ -140,17 +141,4 @@ if os.path.exists(EXCEL_FILE):
         df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
         
         format_dict = {}
-        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
-            if c in df_final.columns:
-                format_dict[c] = "{:.2f}"
-        if "Khối lượng GD" in df_final.columns:
-            format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
-        
-        styled_df = df_final.style.format(format_dict)
-        st.dataframe(styled_df, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"⚠️ Phát hiện lỗi bất thường từ dữ liệu Excel: {e}")
-        st.warning("Bạn hãy chụp lại khung đỏ này gửi tôi nhé!")
-else:
-    st.error("Không tìm thấy file Excel!")
+        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch
