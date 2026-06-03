@@ -70,67 +70,53 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ MỚI CHUẨN SSI
+        # GIAO DIỆN CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ CAO CẤP
         # ==========================================
-        st.markdown("---")
-        st.subheader("🥧 Cơ cấu cổ đông & Quy mô vốn")
+        st.markdown("<br><hr style='margin-bottom: 20px;'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; margin-bottom: 30px; color: #333;'>🥧 Quy mô Vốn & Cơ cấu Cổ đông</h3>", unsafe_allow_html=True)
         
-        # Hiển thị số Vốn điều lệ chi tiết đến hàng nghìn căn giữa
-        st.success("🏢 **Vốn điều lệ Tập đoàn:** 12.938.780.810.000 đồng (Tương đương 1.293.878.081 cổ phiếu)")
+        # Thiết kế khối hiển thị Vốn điều lệ chuẩn phong cách Dashboard tài chính
+        st.markdown("""
+            <div style="background-color: #f8f9fa; padding: 25px; border-radius: 12px; 
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; 
+                        max-width: 800px; margin: 0 auto 30px auto; border-left: 6px solid #2b5ce6;">
+                <p style="font-size: 15px; margin-bottom: 5px; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                    Vốn điều lệ Tập đoàn
+                </p>
+                <h2 style="margin: 0; color: #1f4e79; font-size: 34px; font-weight: 700;">
+                    12.938.780.810.000 VNĐ
+                </h2>
+                <p style="font-size: 15px; margin-top: 5px; color: #888;">
+                    (Tương đương 1.293.878.081 cổ phiếu)
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
         
-        # Biểu đồ Donut theo chuẩn màu và số liệu của ảnh bạn gửi
-        labels = ['Bộ Tài Chính (Cổ đông nhà nước)', 'Cổ đông nước ngoài', 'Cổ đông khác']
-        values = [75.87, 14.10, 10.03] 
-        colors = ['#2b5ce6', '#8e8e8e', '#f5f5f5'] # Mã màu Xanh lam - Xám - Bạc giống ảnh
+        # Sử dụng cột để khống chế chiều rộng của biểu đồ tròn (tránh bị phình to)
+        # Tỷ lệ 1-2-1 tạo ra một cột trung tâm chiếm 50% màn hình, ép biểu đồ vào chính giữa
+        col_left, col_center, col_right = st.columns([1, 2, 1])
         
-        fig_pie = go.Figure(data=[go.Pie(
-            labels=labels, 
-            values=values, 
-            hole=0.45, 
-            textinfo='percent',
-            textposition='inside',
-            hoverinfo='label+percent',
-            marker=dict(
-                colors=colors, 
-                line=dict(color='#e0e0e0', width=1) # Thêm viền nhẹ để phần màu bạc nổi lên
-            )
-        )])
-        
-        # Đưa chú thích (legend) nằm ngang xuống dưới cùng giống SSI
-        fig_pie.update_layout(
-            showlegend=True, 
-            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
-            margin=dict(t=20, b=20, l=0, r=0), 
-            height=400
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
-        st.markdown("---")
-        # ==========================================
-
-        # 7. Bảng chi tiết
-        st.subheader("📋 Bảng dữ liệu giao dịch")
-        df_display = df.copy()
-        
-        if 'STT' in df_display.columns:
-            df_display = df_display.drop(columns=['STT'])
-        df_display.insert(0, "STT", range(1, len(df_display) + 1))
-        
-        cols_order = ["STT", "Mã CP", "Ngày_chuẩn", "Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Khối lượng GD", "Giá trung bình (30 ngày giao dịch gần nhất)"]
-        valid_cols = [c for c in cols_order if c in df_display.columns]
-        df_final = df_display[valid_cols].rename(columns={"Ngày_chuẩn": "Ngày"})
-        
-        format_dict = {}
-        for c in ["Giá mở cửa", "Giá cao nhất", "Giá thấp nhất", "Giá đóng cửa", "Giá trung bình (30 ngày giao dịch gần nhất)"]:
-            if c in df_final.columns:
-                format_dict[c] = "{:.2f}"
-        if "Khối lượng GD" in df_final.columns:
-            format_dict["Khối lượng GD"] = lambda x: f"{int(x):,}".replace(",", ".") if pd.notna(x) else ""
-        
-        styled_df = df_final.style.format(format_dict)
-        st.dataframe(styled_df, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"⚠️ Phát hiện lỗi bất thường từ dữ liệu Excel: {e}")
-        st.warning("Bạn hãy chụp lại khung đỏ này gửi tôi nhé!")
-else:
-    st.error("Không tìm thấy file Excel!")
+        with col_center:
+            labels = ['Bộ Tài Chính', 'Cổ đông nước ngoài', 'Cổ đông khác']
+            values = [75.87, 14.10, 10.03] 
+            colors = ['#2b5ce6', '#8e8e8e', '#d9d9d9'] # Xanh lam, Xám, Bạc
+            
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=labels, 
+                values=values, 
+                hole=0.55, # Mở rộng lõi để viền mỏng hơn, hiện đại hơn
+                textinfo='percent',
+                textposition='inside',
+                hoverinfo='label+percent',
+                marker=dict(
+                    colors=colors, 
+                    line=dict(color='#ffffff', width=2.5) # Thêm viền phân cách trắng sắc nét
+                )
+            )])
+            
+            fig_pie.update_layout(
+                showlegend=True, 
+                legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
+                margin=dict(t=10, b=20, l=0, r=0), 
+                height=380,
+                paper_bgcolor="rgba(0,0,0,0)", # Xóa nền biểu đồ để tiệp màu với trang web
