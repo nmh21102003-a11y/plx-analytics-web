@@ -70,40 +70,40 @@ if os.path.exists(EXCEL_FILE):
         st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
         # ==========================================
-        # CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ
+        # CƠ CẤU CỔ ĐÔNG & VỐN ĐIỀU LỆ MỚI CHUẨN SSI
         # ==========================================
         st.markdown("---")
         st.subheader("🥧 Cơ cấu cổ đông & Quy mô vốn")
         
-        col1, col2 = st.columns([1.5, 2])
+        # Hiển thị số Vốn điều lệ chi tiết đến hàng nghìn căn giữa
+        st.success("🏢 **Vốn điều lệ Tập đoàn:** 12.938.780.810.000 đồng (Tương đương 1.293.878.081 cổ phiếu)")
         
-        with col1:
-            labels = ['Ủy ban Quản lý vốn nhà nước', 'ENEOS Corporation', 'Cổ đông khác']
-            values = [75.87, 13.00, 11.13] 
-            
-            fig_pie = go.Figure(data=[go.Pie(
-                labels=labels, 
-                values=values, 
-                hole=0.4, 
-                textinfo='label+percent',
-                textposition='inside',
-                marker=dict(colors=['#1f77b4', '#ff7f0e', '#2ca02c'])
-            )])
-            fig_pie.update_layout(showlegend=False, margin=dict(t=10, b=10, l=0, r=0), height=300)
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
-        with col2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Thẻ nhấn mạnh Vốn điều lệ
-            st.success("🏢 **Vốn điều lệ Tập đoàn:** 12.938 tỷ đồng (Tương đương hơn 1,29 tỷ cổ phiếu)")
-            
-            st.info('''
-            **💡 Ghi chú cấu trúc cổ đông:**
-            - **Ủy ban Quản lý vốn Nhà nước (CMSC):** Nắm giữ 75,87%, đại diện sở hữu Nhà nước chi phối toàn diện, đảm bảo định hướng an ninh năng lượng.
-            - **ENEOS Corporation:** Nắm giữ 13,00%, đối tác chiến lược từ Nhật Bản, hỗ trợ nâng cao năng lực quản trị, vận hành và kỹ thuật.
-            - **Cổ đông khác:** Nắm giữ 11,13%, bao gồm các quỹ đầu tư, tổ chức tài chính và các cổ đông đại chúng trên thị trường.
-            ''')
+        # Biểu đồ Donut theo chuẩn màu và số liệu của ảnh bạn gửi
+        labels = ['Bộ Tài Chính (Cổ đông nhà nước)', 'Cổ đông nước ngoài', 'Cổ đông khác']
+        values = [75.87, 14.10, 10.03] 
+        colors = ['#2b5ce6', '#8e8e8e', '#f5f5f5'] # Mã màu Xanh lam - Xám - Bạc giống ảnh
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=labels, 
+            values=values, 
+            hole=0.45, 
+            textinfo='percent',
+            textposition='inside',
+            hoverinfo='label+percent',
+            marker=dict(
+                colors=colors, 
+                line=dict(color='#e0e0e0', width=1) # Thêm viền nhẹ để phần màu bạc nổi lên
+            )
+        )])
+        
+        # Đưa chú thích (legend) nằm ngang xuống dưới cùng giống SSI
+        fig_pie.update_layout(
+            showlegend=True, 
+            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="center", x=0.5),
+            margin=dict(t=20, b=20, l=0, r=0), 
+            height=400
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
         st.markdown("---")
         # ==========================================
 
